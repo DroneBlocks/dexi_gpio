@@ -87,15 +87,16 @@ ros2 service call /dexi/servo_control dexi_interfaces/srv/ServoControl \
   "{pin: 21, angle: 90, min_pw: 0, max_pw: 0}"
 ```
 
-Or run the included sweep client, which sweeps 0°..180°..0° three times:
-```bash
-ros2 run dexi_gpio servo_sweep_ros_client
-# or
-python3 examples/servo_sweep_ros_client.py
-```
+Or run one of the included examples:
 
-For a pure-Python bench test with no ROS2 at all:
 ```bash
+# Open then close once -- mirrors the Node-RED flow, ideal for payload drops
+python3 examples/servo_open_close.py
+
+# Full 0..180..0 sweep via the ROS2 service
+python3 examples/servo_sweep_ros_client.py
+
+# Pure-Python bench sweep with no ROS2 at all
 sudo python3 examples/servo_sweep_standalone.py
 ```
 
