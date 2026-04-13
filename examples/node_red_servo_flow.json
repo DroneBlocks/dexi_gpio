@@ -9,7 +9,7 @@
     {
         "id": "ws_client_cfg",
         "type": "websocket-client",
-        "path": "ws://192.168.68.57:9090",
+        "path": "ws://192.168.4.1:9090",
         "tls": "",
         "wholemsg": "false",
         "hb": "0",
