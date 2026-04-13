@@ -114,6 +114,110 @@ The servo supply ground **must** be tied to a Pi GND pin — a hobby servo's
 signal line is interpreted relative to its own ground, and without a common
 ground the signal is meaningless and the servo will appear not to move.
 
+## Calling the servo service from Python
+
+If your integration lives in a Python script or ROS2 node on the companion
+computer, call `/dexi/servo_control` directly with `rclpy`. No rosbridge
+needed — you're on the same ROS2 graph as the service.
+
+### Prerequisites
+
+1. `servo_pwm_service` running on the companion computer:
+   ```bash
+   ros2 launch dexi_gpio servo_pwm.launch.py
+   ```
+2. Your script's environment has sourced the DEXI workspace so
+   `dexi_interfaces` is importable:
+   ```bash
+   source ~/dexi_ws/install/setup.bash
+   ```
+
+### Minimal open/close client
+
+This is the entire file. Save as `my_servo.py`, run with `python3 my_servo.py`.
+
+```python
+import time
+import rclpy
+from rclpy.node import Node
+from dexi_interfaces.srv import ServoControl
+
+class ServoClient(Node):
+    def __init__(self):
+        super().__init__('my_servo_client')
+        self.client = self.create_client(ServoControl, '/dexi/servo_control')
+        while not self.client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('waiting for /dexi/servo_control...')
+
+    def set_angle(self, angle: int):
+        req = ServoControl.Request()
+        req.pin = 21       # must match servo_pwm_service's servo_pin param
+        req.angle = angle  # 0..180
+        req.min_pw = 0     # 0 -> node default (500 us)
+        req.max_pw = 0     # 0 -> node default (2500 us)
+        future = self.client.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result()
+
+def main():
+    rclpy.init()
+    node = ServoClient()
+    try:
+        node.set_angle(150)   # open
+        time.sleep(2.0)
+        node.set_angle(30)    # close
+        time.sleep(2.0)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+### Request fields
+
+- `pin` (int): must match the node's `servo_pin` parameter — the node
+  rejects any other pin with `success: false` and a clear message.
+- `angle` (int): 0..180, clamped. For an open/close mechanism, pick two
+  values with margin from the endpoints, e.g. `30` for closed and `150`
+  for open.
+- `min_pw` / `max_pw` (int, µs): pulse-width overrides. Send `0` for both
+  to use the node defaults (500 / 2500 µs). Override only if your servo
+  needs a narrower or wider range.
+
+### Ready-to-run example
+
+A complete one-shot open/close script is provided at
+[`examples/servo_open_close.py`](examples/servo_open_close.py) — same
+logic as above, with more comments and logging. Run it directly:
+
+```bash
+python3 examples/servo_open_close.py
+```
+
+For a full 0°..180°..0° sweep through the same service, use
+[`examples/servo_sweep_ros_client.py`](examples/servo_sweep_ros_client.py):
+
+```bash
+python3 examples/servo_sweep_ros_client.py
+```
+
+### Calling from the shell instead
+
+If you just want to fire a single command without writing any Python at
+all, `ros2 service call` works:
+
+```bash
+# open
+ros2 service call /dexi/servo_control dexi_interfaces/srv/ServoControl \
+  "{pin: 21, angle: 150, min_pw: 0, max_pw: 0}"
+
+# close
+ros2 service call /dexi/servo_control dexi_interfaces/srv/ServoControl \
+  "{pin: 21, angle: 30, min_pw: 0, max_pw: 0}"
+```
+
 ## Calling the servo service from Node-RED
 
 For competitions or ground-station automation, you can drive the servo from
