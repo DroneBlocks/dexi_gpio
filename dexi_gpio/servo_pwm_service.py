@@ -15,8 +15,9 @@ Prerequisites on the host:
   sudo apt install -y pigpio python3-pigpio
   sudo systemctl enable --now pigpiod
 
-Default configuration: single servo on BCM GPIO 21 with a 500..2500 us
-pulse range. Pin is configurable via the 'servo_pin' ROS parameter.
+Default configuration: servos on BCM GPIO pins [21, 22] with a
+500..2500 us pulse range. Pins are configurable via the 'servo_pins'
+ROS parameter (int array).
 """
 import sys
 
@@ -38,9 +39,9 @@ class ServoPwmService(Node):
     def __init__(self):
         super().__init__('servo_pwm_service')
 
-        self.declare_parameter('servo_pin', 21)
+        self.declare_parameter('servo_pins', [21, 22])
         self.declare_parameter('pigpiod_host', 'localhost')
-        self.servo_pin = int(self.get_parameter('servo_pin').value)
+        self.servo_pins = set(int(p) for p in self.get_parameter('servo_pins').value)
         pigpiod_host = str(self.get_parameter('pigpiod_host').value)
 
         self.pi = pigpio.pi(pigpiod_host)
@@ -51,9 +52,10 @@ class ServoPwmService(Node):
             )
             raise RuntimeError('pigpiod not reachable')
 
-        # Start with the line idle (no pulses) so the servo is limp
+        # Start with each line idle (no pulses) so the servos are limp
         # until the first command.
-        self.pi.set_servo_pulsewidth(self.servo_pin, 0)
+        for p in self.servo_pins:
+            self.pi.set_servo_pulsewidth(p, 0)
 
         # Absolute service name so it resolves to /dexi/servo_control
         # regardless of any namespace the node is launched under.
@@ -64,16 +66,16 @@ class ServoPwmService(Node):
         )
 
         self.get_logger().info(
-            f'servo_pwm_service ready on BCM pin {self.servo_pin} '
+            f'servo_pwm_service ready on BCM pins {sorted(self.servo_pins)} '
             f'via pigpiod@{pigpiod_host}, service: /dexi/servo_control'
         )
 
     def servo_callback(self, request, response):
-        if request.pin != self.servo_pin:
+        if request.pin not in self.servo_pins:
             response.success = False
             response.message = (
                 f'Pin {request.pin} not configured. '
-                f'This node only drives BCM pin {self.servo_pin}.'
+                f'This node only drives BCM pins {sorted(self.servo_pins)}.'
             )
             self.get_logger().warn(response.message)
             return response
@@ -91,7 +93,7 @@ class ServoPwmService(Node):
         pulse_us = int(min_pw + (max_pw - min_pw) * (angle / float(MAX_ANGLE)))
 
         try:
-            self.pi.set_servo_pulsewidth(self.servo_pin, pulse_us)
+            self.pi.set_servo_pulsewidth(request.pin, pulse_us)
         except Exception as exc:
             response.success = False
             response.message = f'pigpio set_servo_pulsewidth failed: {exc}'
@@ -99,14 +101,15 @@ class ServoPwmService(Node):
             return response
 
         response.success = True
-        response.message = f'pin={self.servo_pin} angle={angle} pulse={pulse_us}us'
+        response.message = f'pin={request.pin} angle={angle} pulse={pulse_us}us'
         self.get_logger().info(response.message)
         return response
 
     def shutdown(self):
         try:
-            # Pulsewidth 0 releases the line so the servo stops drawing current.
-            self.pi.set_servo_pulsewidth(self.servo_pin, 0)
+            # Pulsewidth 0 releases each line so the servos stop drawing current.
+            for p in self.servo_pins:
+                self.pi.set_servo_pulsewidth(p, 0)
         finally:
             self.pi.stop()
 

@@ -8,7 +8,7 @@ def generate_launch_description():
             package='dexi_gpio',
             executable='servo_pwm_service',
             name='servo_pwm_service',
-            parameters=[{'servo_pin': 21}],
+            parameters=[{'servo_pins': [21, 22]}],
             output='screen',
         ),
     ])
