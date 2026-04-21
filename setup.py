@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'gpio_writer_service = dexi_gpio.gpio_writer_service:main',
             'gpio_reader = dexi_gpio.gpio_reader:main',
+            'servo_pwm_service = dexi_gpio.servo_pwm_service:main',
         ],
     },
 )
