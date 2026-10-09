@@ -83,12 +83,12 @@ ros2 launch dexi_gpio gpio.launch.py
 
 ### Run example subscriber
 ```bash
-ros2 run python3 examples/gpio_subscriber.py
+python3 examples/python/gpio_subscriber.py
 ```
 
 ### Run example service client
 ```bash
-ros2 run python3 examples/gpio_service_call.py
+python3 examples/python/gpio_service_call.py
 ```
 
 ### Launch the servo PWM service
@@ -121,13 +121,13 @@ Or run one of the included examples:
 
 ```bash
 # Open then close once -- mirrors the Node-RED flow, ideal for payload drops
-python3 examples/servo_open_close.py
+python3 examples/python/servo_open_close.py
 
 # Full 0..180..0 sweep via the ROS2 service
-python3 examples/servo_sweep_ros_client.py
+python3 examples/python/servo_sweep_ros_client.py
 
 # Pure-Python bench sweep with no ROS2 at all (pigpio, no sudo needed)
-python3 examples/servo_sweep_standalone.py
+python3 examples/python/servo_sweep_standalone.py
 ```
 
 ## Servo Wiring
@@ -219,18 +219,18 @@ if __name__ == '__main__':
 ### Ready-to-run example
 
 A complete one-shot open/close script is provided at
-[`examples/servo_open_close.py`](examples/servo_open_close.py) — same
+[`examples/python/servo_open_close.py`](examples/python/servo_open_close.py) — same
 logic as above, with more comments and logging. Run it directly:
 
 ```bash
-python3 examples/servo_open_close.py
+python3 examples/python/servo_open_close.py
 ```
 
 For a full 0°..180°..0° sweep through the same service, use
-[`examples/servo_sweep_ros_client.py`](examples/servo_sweep_ros_client.py):
+[`examples/python/servo_sweep_ros_client.py`](examples/python/servo_sweep_ros_client.py):
 
 ```bash
-python3 examples/servo_sweep_ros_client.py
+python3 examples/python/servo_sweep_ros_client.py
 ```
 
 ### Calling from the shell instead
@@ -320,7 +320,7 @@ under the hood:
 ### Ready-to-import flow
 
 A complete importable flow is provided at
-[`examples/node_red_servo_flow.json`](examples/node_red_servo_flow.json).
+[`examples/node_red/node_red_servo_flow.json`](examples/node_red/node_red_servo_flow.json).
 Import it via **Menu → Import → select file**, then edit the websocket
 client config once to set the correct `ws://<host>:9090` URL.
 
